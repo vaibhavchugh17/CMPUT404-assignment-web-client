@@ -18,8 +18,12 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
-#https://docs.python.org/3/library/urllib.parse.html
-#split
+''' 
+REFERENCES
+urlib.parse: https://docs.python.org/3/library/urllib.parse.html
+socket: https://docs.python.org/3/library/socket.html
+split: https://www.w3schools.com/python/ref_string_split.asp
+'''
 
 import sys
 import socket
