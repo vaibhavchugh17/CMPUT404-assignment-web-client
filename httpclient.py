@@ -18,6 +18,9 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
+#https://docs.python.org/3/library/urllib.parse.html
+#split
+
 import sys
 import socket
 import re
@@ -41,13 +44,14 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        split_data = data.split("\r\n")[0] 
+        return int(split_data.split()[1])
 
     def get_headers(self,data):
-        return None
+        return data.split("\r\n\r\n")[0]
 
     def get_body(self, data):
-        return None
+        return data.split("\r\n\r\n")[1]
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -67,15 +71,83 @@ class HTTPClient(object):
                 done = not part
         return buffer.decode('utf-8')
 
+    def parse_url(self, url):
+        url_parsed = urllib.parse.urlparse(url)
+        return url_parsed.hostname, url_parsed.port, url_parsed.path, url_parsed.scheme
+
+    def assign_ports(self, scheme, port):
+        if not port:
+            if scheme == "http": port = 80
+            elif scheme == "https": port = 443
+        return port
+
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        #parse url
+        host, port, path, scheme = self.parse_url(url)
+
+        #assign ports
+        port = self.assign_ports(scheme, port)
+        
+        #validate path
+        if not path: path = "/" 
+
+        #connect to host
+        self.connect(host, port)
+
+        #send request
+        request = f"GET {path} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: sample browser details\r\nAccept: */*\r\nAccept-Language: en\r\nConnection: close\r\n\r\n"
+        self.sendall(request)
+
+        #receive response
+        response = self.recvall(self.socket)
+
+        #parse response
+        code = self.get_code(response)
+        header = self.get_headers(response)
+        body = self.get_body(response)
+        print(f"CODE:\n{code}\n\nHEADER:\n{header}\n\nBODY:\n{body}")
+
+        #close connection
+        self.close()
+
         return HTTPResponse(code, body)
 
+
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        #parse url
+        host, port, path, scheme = self.parse_url(url)
+
+        #assign ports
+        port = self.assign_ports(scheme, port)
+
+        #validate path
+        if not path: path = "/" 
+
+        #validate args
+        if not args: args = ""
+        args_enc = urllib.parse.urlencode(args)
+
+        #connect to host
+        self.connect(host, port)
+
+        #send request
+        request = f"POST {path} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: sample browser details\r\nAccept: */*\r\nAccept-Language: en\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {str(len(args_enc))}\r\nConnection: close\r\n\r\n{args_enc}"
+        self.sendall(request)
+
+        #receive response
+        response = self.recvall(self.socket)
+
+        #parse response
+        code = self.get_code(response)
+        header = self.get_headers(response)
+        body = self.get_body(response)
+        print(f"CODE:\n{code}\n\nHEADER:\n{header}\n\nBODY:\n{body}")
+
+        #close connection
+        self.close()
+        
         return HTTPResponse(code, body)
+
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
